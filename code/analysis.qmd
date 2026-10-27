@@ -1,0 +1,94 @@
+---
+title: "Analysis.qmd"
+format: html
+editor: visual
+---
+
+```{r}
+source("Module2_Workshop1.R")
+```
+
+```{r}
+penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass_g = mean(body_mass_g, na.rm = TRUE),
+    sd_mass_g = sd(body_mass_g, na.rm = TRUE),
+    n = n()
+  )
+```
+
+```{r}
+penguins |>
+  ggplot(aes(x = species, y = body_mass_g, fill = island)) +
+  geom_boxplot()
+```
+
+```{r}
+mass_compare_plot <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = species, y = mean_mass, colour = island)) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = mean_mass - sd_mass,
+      ymax = mean_mass + sd_mass
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Mean Body Mass by Species and Island",
+    subtitle = "Error bars represent standard deviation",
+    y = "Mean Body Mass (g)",
+    x = "Species"
+  ) +
+  theme_minimal()
+
+mass_compare_plot
+```
+
+```{r}
+penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = n(),
+    se_mass = sd_mass / sqrt(n),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = species, y = mean_mass, colour = island)) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = mean_mass - se_mass,
+      ymax = mean_mass + se_mass
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Mean Body Mass by Species and Island",
+    subtitle = "Error bars represent standard error",
+    y = "Mean Body Mass (g)",
+    x = "Species"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = n(),
+    se_mass = sd_mass / sqrt(n),
+    .groups = "drop"
+  )
+```
