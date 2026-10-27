@@ -1,6 +1,6 @@
 ---
 title: "R4MS Workshop 2 - Final Exercise"
-author: "Ben Cresswell"
+author: "Jake Davis"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: 
  html_document:
@@ -42,9 +42,9 @@ rm(list = ls())
 
 # Packages
 
-```{r packages echo = FALSE}
-library(tidyverse) # Inc dplyr, ggplot2, lubridate etc
-library(readxl) # For reading in excel files
+```{r packages, echo=FALSE}
+library(tidyverse)
+library(readxl)
 ```
 
 # Load files
@@ -55,9 +55,9 @@ The catch data is split across 4 tabs in one excel file Load indivudally
 
 ```{r load-catch-1}
 catch1 <- read_excel(here::here("data/workshop2/estuary_catch_log.xlsx"), sheet = "Lower_ross")
-catch2 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 2)
-catch3 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 3)
-catch4 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 4)
+catch2 <- read_excel(here::here("data/workshop2/estuary_catch_log.xlsx"), sheet = 2)
+catch3 <- read_excel(here::here("data/workshop2/estuary_catch_log.xlsx"), sheet = 3)
+catch4 <- read_excel(here::here("data/workshop2/estuary_catch_log.xlsx"), sheet = 4)
 ```
 
 # Inspect individual tabs
@@ -107,7 +107,7 @@ First we'll need to load the metadata and see what that has in store for us!
 
 # Load metadata
 ```{r load-metadata}
-metadata <- read_csv("../data/workshop2/estuary_metadata.csv")
+metadata <- read_csv(here::here("data/workshop2/estuary_metadata.csv"))
 ```
 
 
@@ -153,7 +153,9 @@ Next we need to do something about the species names. Can use the taxonomic dict
 
 ###  Load Taxonomic Dictionary
 ```{r load-species-dict}
-species_dict <- read_csv("../data/workshop2/species_dictionary.csv")
+species_dict <- read_csv(
+  here::here("data/workshop2/species_dictionary.csv")
+)
 # Check
 head(species_dict)
 ```
@@ -196,7 +198,7 @@ We know we need to add the metadata in, but we also have this dataset with sonde
 (Code for this is written in separate script which we can source from here)
 ```{r load-sonde}
 
-source(here::here("code/diw_sensor.R"))
+source(here::here("code/R4MS_diw_sensor.R"))
 ```
 
 #### Notes on sensor data
@@ -259,11 +261,11 @@ catch_data_final |>
 #### Salinity
 ```{r}
 # Let's make a table
-sal_sum <- 
+sal_sum <-
   catch_data_final |>
+  distinct(site, date, .keep_all = TRUE) |>
   group_by(zone) |>
   summarise(
-   # sem_salinity = sd(mean_salinity) / sqrt(n()),
     sd_salinity = sd(mean_salinity, na.rm = TRUE),
     median_salinity = median(mean_salinity, na.rm = TRUE),
     .groups = "drop"
@@ -356,16 +358,28 @@ sal_sum |>
 fish_stats <- catch_data_final |>
   group_by(zone, scientific_name) |>
   summarise(
-    mean_catch = mean(count),
-    sem_catch = sd(count) / sqrt(n()),
+    mean_catch = mean(count, na.rm = TRUE),
+    sd_catch = sd(count, na.rm = TRUE),
+    sem_catch = sd_catch / sqrt(sum(!is.na(count))),
     .groups = "drop"
   )
+salinity_stats <- catch_data_final |>
+  distinct(site, date, .keep_all = TRUE) |>
+  group_by(zone) |>
+  summarise(
+    mean_salinity = mean(mean_salinity, na.rm = TRUE),
+    sd_salinity = sd(mean_salinity, na.rm = TRUE),
+    sem_salinity = sd_salinity / sqrt(sum(!is.na(mean_salinity))),
+    .groups = "drop"
+  )
+
+salinity_stats
 ```
 
 # And plot
 
 ```{r}
-fish_stats |> 
+fish_plot <- fish_stats |>
   ggplot(aes(x = zone, y = mean_catch, fill = scientific_name)) +
   geom_line(group = 1) +
   # add in points from master data
@@ -387,10 +401,17 @@ fish_stats |>
     #subtitle = "Ross River Estuary System, May 2026",
     x = "Spatial Zone",
     # scientific label for y axis of n day -1 use regex to get superscript
-    y = expression("Abundance (n day"^-1*")"),
+  y = expression("Abundance (n day"^-1*")"),
   #  y = "Daily abundance (n day^-1)"
-    y = "Abundance (per day)"
   )
+fish_plot
+ggsave(
+  filename = here::here("outputs", "figures", "R4MS_W2_fish_abundance.png"),
+  plot = fish_plot,
+  width = 10,
+  height = 7,
+  dpi = 300
+)
 ```
 
 
