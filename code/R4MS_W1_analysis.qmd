@@ -1,0 +1,133 @@
+---
+title: "R for Marine Science – Workshop 1"
+subtitle: "Data Wrangling and Visualization"
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| results: hide
+
+source("R4MS_W1.R")
+```
+
+```{r}
+penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass_g = mean(body_mass_g, na.rm = TRUE),
+    sd_mass_g = sd(body_mass_g, na.rm = TRUE),
+    n = n()
+  )
+```
+
+```{r}
+penguins |>
+  ggplot(aes(x = species, y = body_mass_g, fill = island)) +
+  geom_boxplot()
+ggsave(
+  filename = here::here("outputs", "figures", "R4MS_W1_penguin_boxplot.png"),
+  plot = last_plot(),
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+```{r}
+mass_compare_plot <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = species, y = mean_mass, colour = island)) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = mean_mass - sd_mass,
+      ymax = mean_mass + sd_mass
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Mean Body Mass by Species and Island",
+    subtitle = "Error bars represent standard deviation",
+    y = "Mean Body Mass (g)",
+    x = "Species"
+  ) +
+  theme_minimal()
+
+mass_compare_plot
+ggsave(
+  filename = here::here("outputs", "figures", "R4MS_W1_penguin_SD.png"),
+  plot = mass_compare_plot,
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+```{r}
+penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+    n = n(),
+    se_mass = sd_mass / sqrt(n),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = species, y = mean_mass, colour = island)) +
+  geom_point(size = 3) +
+  geom_errorbar(
+    aes(
+      ymin = mean_mass - se_mass,
+      ymax = mean_mass + se_mass
+    ),
+    width = 0.2
+  ) +
+  labs(
+    title = "Mean Body Mass by Species and Island",
+    subtitle = "Error bars represent standard error",
+    y = "Mean Body Mass (g)",
+    x = "Species"
+  ) +
+  theme_minimal()
+ggsave(
+  filename = here::here("outputs", "figures", "R4MS_W1_penguin_SE.png"),
+  plot = last_plot(),
+  width = 8,
+  height = 5,
+  dpi = 300
+)
+```
+
+```{r}
+mass_summary <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass = mean(body_mass_g, na.rm = TRUE),
+    sd_mass = sd(body_mass_g, na.rm = TRUE),
+   n = sum(!is.na(body_mass_g)),
+se_mass = sd_mass / sqrt(n),
+    .groups = "drop"
+  )
+write_csv(
+  mass_summary,
+  here::here("outputs", "tables", "R4MS_W1_penguin_summary.csv")
+)
+```
+
+### Interpretation of Results
+
+The analysis examines variation in body mass among three penguin species across the Palmer Archipelago. Gentoo penguins generally have the highest mean body mass, followed by Chinstrap and Adélie penguins. This suggests that species identity is an important factor associated with differences in body mass.
+
+The boxplots illustrate variation in body mass within each species, while the summary plots provide a clearer comparison of group means. Standard deviation (SD) describes the spread of individual body masses around the mean, whereas standard error (SE) describes the precision of the estimated mean. Consequently, the SE error bars are narrower than the SD error bars.
+
+Although body mass differs among species, the plots alone do not establish whether these differences are statistically significant. Additionally, because penguin species are not equally represented across islands, differences between island groups should be interpreted cautiously.
